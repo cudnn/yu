@@ -1,0 +1,298 @@
+
+#!/bin/bash
+
+# bpi m3 setup script for use as companion computer
+
+# update m3 to latest versions
+
+#sudo apt-get purge tightvncserver
+sudo apt-get install mplayer
+sudo apt-get update
+sudo apt-get upgrade
+
+# install python
+sudo apt-get install python-dev
+sudo wget https://bootstrap.pypa.io/get-pip.py
+sudo python get-pip.py
+
+# install dronekit
+sudo pip install dronekit dronekit-sitl # also installs pymavlink
+#sudo apt-get install screen python-wxgtk2.8 python-matplotlib python-opencv python-pip python-numpy python-dev libxml2-dev libxslt-dev
+sudo pip install mavproxy
+
+# live video related packages
+sudo apt-get install gstreamer1.0
+sudo apt-get install gstreamer1.0
+
+# access point packages
+sudo apt-get install hostapd isc-dhcp-server
+
+# opencv - see http://www.pyimagesearch.com/2015/10/26/how-to-install-opencv-3-on-raspbian-jessie/
+sudo apt-get install build-essential git cmake pkg-config
+sudo apt-get install libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev
+sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
+sudo apt-get install libxvidcore-dev libx264-dev
+sudo apt-get install libgtk2.0-dev
+sudo apt-get install libatlas-base-dev gfortran
+sudo apt-get install python2.7-dev python3-dev
+sudo apt-get install  libgflags-dev libgoogle-glog-dev   libeigen3-dev 
+
+
+cd ~
+sudo git clone https://github.com/Itseez/opencv.git --depth 1
+sudo git clone https://github.com/Itseez/opencv_contrib.git
+mkdir build
+cd ~/opencv/build
+change tbb makelist.txt to tbb43_20150611oss_src
+sudo cmake -D CMAKE_BUILD_TYPE=RELEASE -D ENABLE_NEON=ON -D BUILD_TBB=ON -D WITH_TBB=ON -D WITH_OPENCL=OFF -D WITH_OPENMP=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D WITH_OPENCL=OFF -D WITH_CUDA=OFF -D BUILD_opencv_gpu=OFF -D BUILD_opencv_gpuarithm=OFF -D BUILD_opencv_gpubgsegm=OFF -D BUILD_opencv_gpucodec=OFF -D BUILD_opencv_gpufeatures2d=OFF -D BUILD_opencv_gpufilters=OFF -D BUILD_opencv_gpuimgproc=OFF -D BUILD_opencv_gpulegacy=OFF -D BUILD_opencv_gpuoptflow=OFF -D BUILD_opencv_gpustereo=OFF -D BUILD_opencv_gpuwarping=OFF -D CMAKE_INSTALL_PREFIX=/usr/local - D INSTALL_C_EXAMPLES=ON   -D INSTALL_PYTHON_EXAMPLES=ON -D OPENCV_EXTRA_MODULES_PATH=/home/pi/emmc/opencv_contrib/modules -D BUILD_EXAMPLES=ON ..
+
+
+
+
+make -j8
+
+//tbb:sudo make  CXXFLAGS="-DTBB_USE_GCC_BUILTINS=1 -D__TBB_64BIT_ATOMICS=0"  -j8
+sudo make install
+sudo ldconfig
+
+# picamera (likely already included from opencv)
+# sudo pip install "picamera[array]"
+
+# cherrypy web server (used by red balloon finder)
+sudo pip install cherrypy
+
+# install red balloon finder
+sudo apt-get install screen
+
+cd ~
+sudo git clone https://github.com/diydrones/companion.git
+sudo git clone https://github.com/rmackay9/ardupilot-balloon-finder
+
+
+
+
+sudo wget https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb43_20150611oss_src.tgz
+sudo tar xvf tbb43_20150611oss_src.tgz
+# Download and unpack
+wget https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb43_20150611oss_src.tgz
+tar xvf tbb43_20150611oss_src.tgz
+cd tbb43_20150611oss
+# Make flags from https://software.intel.com/en-us/forums/topic/500680
+sudo make tbb CXXFLAGS="-DTBB_USE_GCC_BUILTINS=1 -D__TBB_64BIT_ATOMICS=0" 
+# Export the required environment variables
+cd ~/tbb43_20150611oss/build/linux_armv7_gcc_cc4.9.2_libc2.19_kernel3.4.39_release
+source tbbvars.sh
+
+sudo wget https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb44_20160526oss_src_0.tgz
+sudo tar xvf  tbb44_20160526oss_src.tgz
+cd tbb44_20160128oss_src
+sudo make tbb CXXFLAGS="-DTBB_USE_GCC_BUILTINS=1 -D__TBB_64BIT_ATOMICS=0" 
+cd ~/tbb44_20160526oss/build/linux_armv7_gcc_cc4.9.2_libc2.19_kernel3.4.39_release
+source tbbvars.sh
+
+
+
+to uninstall go to the build directory and run:
+sudo make uninstall
+g++ -o edge edge.cpp `pkg-config opencv --cflags --libs`
+ ./edge
+
+or you can add the following Makefile:
+And then run:
+make edge
+ ./edge
+
+
+1. cd /home/debian/ardupilot 
+2. alias waf="$PWD/modules/waf/waf-light" 
+3. git checkout Copter-3.4  for ArduCopter or  git checkout ArduPlane-3.6.0  for ArduPlane
+4. waf configure --board=bbbmini 
+5. waf  (take about 1h20m)
+6. cp build/bbbmini/bin/* /home/debian/ 
+7. sudo /home/debian/arducopter-hexa   -C udp:192.168.1.105:14550 
+
+192.168.1.105
+
+sudo /home/debian/arducopter-quad  -B /dev/ttyO5  -C udp:192.168.43.1:14550   
+
+ python /home/pi/GitHub/ardupilot-balloon-finder/scripts/balloon_strategy.py
+
+
+sudo mavproxy.py --master=udp:192.168.1.112:14550 --baudrate 1500000   --out=udp:192.168.1.106:14550 --baudrate 1500000  --aircraft MyCopter
+sudo mavproxy.py --master=udp:本地地址            --baudrate 1500000   --out=udp:目标地址            --baudrate 1500000  --aircraft MyCopter
+
+
+python /home/pi/GitHub/ardupilot-balloon-finder/scripts/balloon_strategy.py
+python /home/pi/GitHub/ardupilot-balloon-finder/scripts/balloon_strategy.py
+
+
+
+
+sudo apt-get install tightvncserver
+
+=====国内源=====
+sudo cp sources.list /etc/apt/
+deb http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian/ jessie main contrib non-free rpi
+
+
+=====格式化eMMC=====
+
+  sudo umount /dev/mmcblk1
+  sudo mkfs -V  /dev/mmcblk1
+  sudo mount /dev/mmcblk1  /home/pi/emmc
+
+=====烧录eMMC=====
+
+   sudo umount /dev/mmcblk1p1 /dev/mmcblk1p2
+   sudo dd if=-r of=/dev/mmcblk1 bs=10M
+   sudo sync
+
+
+sudo apt-cache show  libeigen3-dev
+
+sudo apt-cache search  vnc
+
+sudo apt-get install libeigen3-dev=3.2.2-3
+
+
+libgflags-dev libgoogle-glog-dev   libeigen3-dev 
+
+
+
+查看网卡信息：
+# iwconfig
+
+无线网卡一般是wlan0
+# ifconfig wlan1 up #启用无线网卡
+
+查看附近可用的无线接入点（AP）
+# iwlist wlan1 scan
+
+apt-get install usbutils
+sudo apt-get install  wireless-tools wpasupplicant
+
+wpa_passphrase cnnc1 qqqqqqqq  
+
+
+network={
+        ssid="cnnc1"
+        #psk="qqqqqqqq"
+        psk=087604fd55b0e163b5d03306d3ddc7a31f19d4b820441e7d06ed94422261c090
+
+
+auto run 
+/etc/rc.local
+
+
+$ ps -ef | grep firefox
+$kill -s 9 1827
+sudo modprobe ov8865_4lane
+ 
+
+sudo modprobe ov5640 ov8865_4lane
+
+banana pi BPI-M2 camera use OV5640 chip [image]  Use Method sudo modprobe ov5640 sudo modprobe sunxi_csi1 mplayer tv:// -tv device=/dev/video1
+
+
+
+
+本帖最后由 小菜儿 于 2015-1-16 08:57 编辑 
+
+内核编译环境：香蕉派M1
+系统：Bananian.15.01(下载地址：http://www.bananian.org）
+Step 1:
+首先安装下载编译内核必要的工具
+apt-get install git build-essential libncurses5-dev u-boot-tools uboot-mkimage
+Step 2:下载最新内核源码
+cd ~
+git clone https://github.com/bananian/linux-bananapi.git --depth 1
+cd linux-bananapi
+Step 3:把编译配置为默认配置
+make sun7i_defconfig
+Step make menuconfig
+?:如果需要修改内核选项，可以执行以下命令
+（非必须）
+step 4:编译内核-j2的意思是使用两个核心编译
+make -j2 uImage modules
+
+step 5:安装内核模块
+make modules_install
+step 6:挂载boot分区并把编译完成的内核复制过去
+mount /dev/mmcblk0p1 /boot
+cp arch/arm/boot/uImage /boot
+
+ cp linux-sunxi/arch/arm/boot/uImage /boot/bananapi/bpi-m3/linux
+
+step 7:重启使用新内核
+reboot
+
+
+
+
+
+
+
+
+
+
+
+ gst-launch-1.0 v4l2src device=/dev/video0   
+
+
+
+
+
+
+
+gst-launch-1.0 v4l2src device=/dev/video0 ! video/x-h264,width=640,height=360,framerate=30/1 ! h264parse ! rtph264pay pt=127 config-interval=4 ! udpsink host=192.168.1.101 port=5000  
+
+
+
+
+
+
+
+
+
+
+
+
+sudo apt-get install ipython  python-scipy python-pygame python-setuptools git
+wget http://www.libsdl.org/release/SDL-1.2.15.tar.gz
+tar -xzf SDL-1.2.15.tar.gz
+
+./configure
+ make
+ sudo make install
+
+
+wget http://www.pygame.org/ftp/pygame-1.9.1release.tar.gz
+tar -xzf pygame-1.9.1release.tar.gz
+
+sudo apt-get install mercurial python-dev python-numpy libav-tools     libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsmpeg-dev     libsdl1.2-dev  libportmidi-dev libswscale-dev 
+sudo apt-get install mercurial  libav-tools libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsmpeg-dev     libsdl1.2-dev  libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev
+python setup.py build
+ sudo python setup.py  install
+
+
+linux/videodev.h:No such file or directory error
+sudo  apt-get install libv4l-dev
+
+cd /usr/include/linux
+sudo  ln -s ../libv4l1-videodev.h videodev.h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
